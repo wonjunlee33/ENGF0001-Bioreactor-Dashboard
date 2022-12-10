@@ -72,20 +72,88 @@ btnRpmDec.addEventListener("click", function (e) {
 
 // fetch api to acquire information from ESP32
 // create websocket connection
+
+function toIsoString(date) {
+  var tzo = -date.getTimezoneOffset(),
+    dif = tzo >= 0 ? "+" : "-",
+    pad = function (num) {
+      return (num < 10 ? "0" : "") + num;
+    };
+
+  return (
+    date.getFullYear() +
+    "-" +
+    pad(date.getMonth() + 1) +
+    "-" +
+    pad(date.getDate()) +
+    "T" +
+    pad(date.getHours()) +
+    ":" +
+    pad(date.getMinutes()) +
+    ":" +
+    pad(date.getSeconds()) +
+    dif +
+    pad(Math.floor(Math.abs(tzo) / 60)) +
+    ":" +
+    pad(Math.abs(tzo) % 60)
+  );
+}
+
+var dt = new Date();
+const nowDate = toIsoString(dt);
+
 const socket = new WebSocket(`ws://20.168.214.240/ws/api/`);
+
+const constrGetUserData = {
+  method: "getUserData",
+  params: "null",
+};
+
+const constrGetData = {
+  method: "getData",
+  params: {
+    date_from: "1997-07-16T19:20:30+01:00",
+    date_to: `${nowDate}`,
+  },
+};
 
 // open connection and receive
 socket.addEventListener("open", (event) => {
-  return;
+  socket.send(JSON.stringify(constrGetUserData));
+  socket.send(JSON.stringify(constrGetData));
 });
 
-let receivedTemp = 0;
-let receivedPh = 0;
-let receivedRpm = 0;
+// implement functionality to update initial wantedData
 
 socket.addEventListener("message", (event) => {
   const receivedDataJSON = event.data;
   const receivedData = JSON.parse(receivedDataJSON);
+
+  // handle problems lmao
+  const receivedMethod = `${receivedData.method}`;
+  if (receivedMethod !== "getUserDataResponse") {
+    return;
+  }
+
+  wantedTemp.textContent = receivedTemp.toFixed(1);
+  wantedPh.textContent = receivedPh.toFixed(1);
+  wantedRpm.textContent = receivedRpm;
+});
+
+let receivedTemp = +tempValue.textContent;
+let receivedPh = +phValue.textContent;
+let receivedRpm = +rpmValue.textContent;
+
+socket.addEventListener("message", (event) => {
+  const receivedDataJSON = event.data;
+  const receivedData = JSON.parse(receivedDataJSON);
+
+  // handle problems lmao
+  const receivedMethod = `${receivedData.method}`;
+  if (receivedMethod !== "telemetry") {
+    return;
+  }
+
   receivedTemp = receivedData.data.temperature;
   receivedPh = receivedData.data.ph;
   receivedRpm = receivedData.data.rpm;
@@ -197,21 +265,83 @@ go3.addEventListener("click", function (e) {
 // graph api
 // using canvasjs
 
+// some temporary variables here pls
+
+var tempDPS = [];
+var phDPS = [];
+var rpmDPS = [];
+
+socket.addEventListener("message", (event) => {
+  const receivedDataJSON = event.data;
+  const receivedData = JSON.parse(receivedDataJSON);
+
+  // handle problems lmao
+  const receivedMethod = `${receivedData.method}`;
+  if (receivedMethod !== "getDataResponse") {
+    return;
+  }
+
+  const dataArr = receivedData.params.result.slice(0, 10);
+  console.log(dataArr);
+
+  tempDPS = [
+    { x: 1, y: dataArr[0].temperature },
+    { x: 2, y: dataArr[1].temperature },
+    { x: 3, y: dataArr[2].temperature },
+    { x: 4, y: dataArr[3].temperature },
+    { x: 5, y: dataArr[4].temperature },
+    { x: 6, y: dataArr[5].temperature },
+    { x: 7, y: dataArr[6].temperature },
+    { x: 8, y: dataArr[7].temperature },
+    { x: 9, y: dataArr[8].temperature },
+    { x: 10, y: dataArr[9].temperature },
+  ];
+
+  phDPS = [
+    { x: 1, y: dataArr[0].ph },
+    { x: 2, y: dataArr[1].ph },
+    { x: 3, y: dataArr[2].ph },
+    { x: 4, y: dataArr[3].ph },
+    { x: 5, y: dataArr[4].ph },
+    { x: 6, y: dataArr[5].ph },
+    { x: 7, y: dataArr[6].ph },
+    { x: 8, y: dataArr[7].ph },
+    { x: 9, y: dataArr[8].ph },
+    { x: 10, y: dataArr[9].ph },
+  ];
+
+  rpmDPS = [
+    { x: 1, y: dataArr[0].rpm },
+    { x: 2, y: dataArr[1].rpm },
+    { x: 3, y: dataArr[2].rpm },
+    { x: 4, y: dataArr[3].rpm },
+    { x: 5, y: dataArr[4].rpm },
+    { x: 6, y: dataArr[5].rpm },
+    { x: 7, y: dataArr[6].rpm },
+    { x: 8, y: dataArr[7].rpm },
+    { x: 9, y: dataArr[8].rpm },
+    { x: 10, y: dataArr[9].rpm },
+  ];
+
+  startGraphs();
+});
+
 // temp chart //////////////////////////////////////////////
 
-window.onload = function () {
-  var tempDPS = [
-    { x: 1, y: 0 },
-    { x: 2, y: 0 },
-    { x: 3, y: 0 },
-    { x: 4, y: 0 },
-    { x: 5, y: 0 },
-    { x: 6, y: 0 },
-    { x: 7, y: 0 },
-    { x: 8, y: 0 },
-    { x: 9, y: 0 },
-    { x: 10, y: 0 },
-  ]; //dataPoints.
+// window.onload = function () {
+var startGraphs = function () {
+  // var tempDPS = [
+  //   { x: 1, y: 0 },
+  //   { x: 2, y: 0 },
+  //   { x: 3, y: 0 },
+  //   { x: 4, y: 0 },
+  //   { x: 5, y: 0 },
+  //   { x: 6, y: 0 },
+  //   { x: 7, y: 0 },
+  //   { x: 8, y: 0 },
+  //   { x: 9, y: 0 },
+  //   { x: 10, y: 0 },
+  // ]; //dataPoints.
 
   var chart = new CanvasJS.Chart("myChart", {
     title: {
@@ -256,18 +386,18 @@ window.onload = function () {
 
   ////////////////////////////////////////////////////
 
-  var phDPS = [
-    { x: 1, y: 0 },
-    { x: 2, y: 0 },
-    { x: 3, y: 0 },
-    { x: 4, y: 0 },
-    { x: 5, y: 0 },
-    { x: 6, y: 0 },
-    { x: 7, y: 0 },
-    { x: 8, y: 0 },
-    { x: 9, y: 0 },
-    { x: 10, y: 0 },
-  ]; //dataPoints.
+  // var phDPS = [
+  //   { x: 1, y: 0 },
+  //   { x: 2, y: 0 },
+  //   { x: 3, y: 0 },
+  //   { x: 4, y: 0 },
+  //   { x: 5, y: 0 },
+  //   { x: 6, y: 0 },
+  //   { x: 7, y: 0 },
+  //   { x: 8, y: 0 },
+  //   { x: 9, y: 0 },
+  //   { x: 10, y: 0 },
+  // ]; //dataPoints.
 
   var chart1 = new CanvasJS.Chart("myChart1", {
     title: {
@@ -312,18 +442,18 @@ window.onload = function () {
 
   //////////////////////////////////////////////////////
 
-  var rpmDPS = [
-    { x: 1, y: 0 },
-    { x: 2, y: 0 },
-    { x: 3, y: 0 },
-    { x: 4, y: 0 },
-    { x: 5, y: 0 },
-    { x: 6, y: 0 },
-    { x: 7, y: 0 },
-    { x: 8, y: 0 },
-    { x: 9, y: 0 },
-    { x: 10, y: 0 },
-  ]; //dataPoints.
+  // var rpmDPS = [
+  //   { x: 1, y: 0 },
+  //   { x: 2, y: 0 },
+  //   { x: 3, y: 0 },
+  //   { x: 4, y: 0 },
+  //   { x: 5, y: 0 },
+  //   { x: 6, y: 0 },
+  //   { x: 7, y: 0 },
+  //   { x: 8, y: 0 },
+  //   { x: 9, y: 0 },
+  //   { x: 10, y: 0 },
+  // ]; //dataPoints.
 
   var chart2 = new CanvasJS.Chart("myChart2", {
     title: {
