@@ -135,6 +135,10 @@ socket.addEventListener("message", (event) => {
     return;
   }
 
+  receivedTemp = receivedData.data.temperature;
+  receivedPh = receivedData.data.ph;
+  receivedRpm = receivedData.data.rpm;
+
   wantedTemp.textContent = receivedTemp.toFixed(1);
   wantedPh.textContent = receivedPh.toFixed(1);
   wantedRpm.textContent = receivedRpm;
@@ -282,7 +286,6 @@ socket.addEventListener("message", (event) => {
   }
 
   const dataArr = receivedData.params.result.slice(0, 10);
-  console.log(dataArr);
 
   tempDPS = [
     { x: 1, y: dataArr[0].temperature },
